@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, MapPin, Calendar, Star, Heart, Sparkles, Plane, Gift, Trophy, Zap } from 'lucide-react';
+import { Shield, MapPin, Calendar, Star, Heart, Sparkles, Plane, Gift, Trophy, Zap, AlertTriangle, CreditCard, Phone, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -29,6 +30,8 @@ const Index = () => {
   const [clickAnimations, setClickAnimations] = useState([]);
   const [screenShake, setScreenShake] = useState(false);
   const [colorBurst, setColorBurst] = useState(false);
+  const [securityBreaches, setSecurityBreaches] = useState([]);
+  const [showBreaches, setShowBreaches] = useState(false);
   const { toast } = useToast();
 
   // API credentials and configuration
@@ -44,6 +47,44 @@ const Index = () => {
   ];
 
   const funEmojis = ['🎉', '✨', '🚀', '💫', '🌟', '🎊', '🦄', '🌈', '💎', '🔥', '⭐', '💥'];
+
+  const securityBreachTypes = [
+    {
+      icon: CreditCard,
+      title: "💳 FRAUDULENT CHARGE DETECTED!",
+      message: `Your credit card ending in ${bookingData.creditCard.slice(-4)} was just charged $2,847.99 for "Premium Electronics Purchase" in a different country!`,
+      severity: "critical",
+      time: "2 seconds ago"
+    },
+    {
+      icon: Phone,
+      title: "📱 UNAUTHORIZED LOGIN ATTEMPT",
+      message: `Someone just tried to log into your banking app using your phone number ${bookingData.phone}. SMS verification sent to unknown device!`,
+      severity: "high",
+      time: "5 seconds ago"
+    },
+    {
+      icon: Lock,
+      title: "🚨 IDENTITY THEFT ALERT",
+      message: `Your SSN ${bookingData.ssn} was found on the dark web! Someone is opening credit accounts in your name RIGHT NOW!`,
+      severity: "critical",
+      time: "8 seconds ago"
+    },
+    {
+      icon: AlertTriangle,
+      title: "⚠️ DATA BREACH NOTIFICATION",
+      message: `Your personal information including full name "${bookingData.fullName}" and email "${bookingData.email}" was sold to 47 data brokers!`,
+      severity: "high",
+      time: "12 seconds ago"
+    },
+    {
+      icon: Shield,
+      title: "🛡️ SECURITY COMPROMISE",
+      message: "Your travel preferences are being used to create targeted scams. Expect calls about 'winning' trips to your chosen destination!",
+      severity: "medium",
+      time: "15 seconds ago"
+    }
+  ];
 
   // Crazy click animation handler
   const handleGlobalClick = (e) => {
@@ -88,6 +129,24 @@ const Index = () => {
     document.addEventListener('click', handleGlobalClick);
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
+
+  const simulateSecurityBreaches = () => {
+    setShowBreaches(true);
+    
+    // Show breaches one by one with delays
+    securityBreachTypes.forEach((breach, index) => {
+      setTimeout(() => {
+        setSecurityBreaches(prev => [...prev, { ...breach, id: Date.now() + index }]);
+        
+        // Play breach-specific toast
+        toast({
+          title: breach.title,
+          description: breach.message,
+          variant: "destructive",
+        });
+      }, (index + 1) * 3000); // 3 seconds between each breach
+    });
+  };
 
   const handleInputChange = (field, value) => {
     setBookingData(prev => ({ ...prev, [field]: value }));
@@ -162,10 +221,24 @@ const Index = () => {
       title: "🏆 LEGENDARY ACHIEVEMENT!",
       description: "Your dream vacation is booked! +1000 champion points!",
     });
+
+    // Start security breach simulation after a short delay
+    setTimeout(() => {
+      simulateSecurityBreaches();
+    }, 2000);
   };
 
   const getProgressPercentage = () => {
     return Math.min(((currentStep + 1) / steps.length) * 100, 100);
+  };
+
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case 'critical': return 'border-red-500 bg-red-50 text-red-900';
+      case 'high': return 'border-orange-500 bg-orange-50 text-orange-900';
+      case 'medium': return 'border-yellow-500 bg-yellow-50 text-yellow-900';
+      default: return 'border-gray-500 bg-gray-50 text-gray-900';
+    }
   };
 
   return (
@@ -189,6 +262,27 @@ const Index = () => {
       {colorBurst && (
         <div className="fixed inset-0 pointer-events-none z-40">
           <div className="absolute inset-0 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 opacity-20 animate-pulse"></div>
+        </div>
+      )}
+
+      {/* Security Breach Alerts Overlay */}
+      {showBreaches && (
+        <div className="fixed top-4 right-4 z-50 space-y-4 max-w-md">
+          {securityBreaches.map((breach) => {
+            const BreachIcon = breach.icon;
+            return (
+              <Alert key={breach.id} className={`${getSeverityColor(breach.severity)} border-2 animate-pulse shadow-2xl`}>
+                <BreachIcon className="h-6 w-6 animate-bounce" />
+                <div className="ml-2">
+                  <h4 className="font-bold text-lg mb-2">{breach.title}</h4>
+                  <AlertDescription className="text-sm font-medium">
+                    {breach.message}
+                  </AlertDescription>
+                  <p className="text-xs opacity-70 mt-2">{breach.time}</p>
+                </div>
+              </Alert>
+            );
+          })}
         </div>
       )}
 
@@ -539,7 +633,7 @@ const Index = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes float-up {
           0% {
             transform: translateY(0) scale(1);
