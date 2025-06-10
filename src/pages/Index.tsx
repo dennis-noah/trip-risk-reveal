@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +26,9 @@ const Index = () => {
   
   const [exposedData, setExposedData] = useState({});
   const [completedFields, setCompletedFields] = useState(new Set());
+  const [clickAnimations, setClickAnimations] = useState([]);
+  const [screenShake, setScreenShake] = useState(false);
+  const [colorBurst, setColorBurst] = useState(false);
   const { toast } = useToast();
 
   // API credentials and configuration
@@ -41,7 +43,53 @@ const Index = () => {
     { title: "🎁 Special Treats", icon: Gift, color: "text-green-500" }
   ];
 
-  const handleInputChange = (field: string, value: string) => {
+  const funEmojis = ['🎉', '✨', '🚀', '💫', '🌟', '🎊', '🦄', '🌈', '💎', '🔥', '⭐', '💥'];
+
+  // Crazy click animation handler
+  const handleGlobalClick = (e) => {
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Create floating emojis
+    const newAnimations = [];
+    for (let i = 0; i < 5; i++) {
+      const emoji = funEmojis[Math.floor(Math.random() * funEmojis.length)];
+      const id = Math.random().toString(36).substr(2, 9);
+      const angle = (Math.PI * 2 * i) / 5;
+      const distance = 50 + Math.random() * 100;
+      
+      newAnimations.push({
+        id,
+        emoji,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        initialX: x,
+        initialY: y
+      });
+    }
+    
+    setClickAnimations(prev => [...prev, ...newAnimations]);
+    
+    // Screen shake effect
+    setScreenShake(true);
+    setTimeout(() => setScreenShake(false), 300);
+    
+    // Color burst effect
+    setColorBurst(true);
+    setTimeout(() => setColorBurst(false), 500);
+    
+    // Clean up animations after they complete
+    setTimeout(() => {
+      setClickAnimations(prev => prev.filter(anim => !newAnimations.find(newAnim => newAnim.id === anim.id)));
+    }, 2000);
+  };
+
+  useEffect(() => {
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
+
+  const handleInputChange = (field, value) => {
     setBookingData(prev => ({ ...prev, [field]: value }));
     
     // Add points for completing fields
@@ -121,7 +169,29 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 relative overflow-hidden">
+    <div className={`min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 relative overflow-hidden transition-all duration-300 ${screenShake ? 'animate-pulse' : ''}`}>
+      {/* Floating click animations */}
+      {clickAnimations.map((anim) => (
+        <div
+          key={anim.id}
+          className="fixed pointer-events-none z-50 text-4xl animate-bounce"
+          style={{
+            left: anim.x,
+            top: anim.y,
+            animation: `float-up 2s ease-out forwards`,
+          }}
+        >
+          {anim.emoji}
+        </div>
+      ))}
+
+      {/* Color burst overlay */}
+      {colorBurst && (
+        <div className="fixed inset-0 pointer-events-none z-40">
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 opacity-20 animate-pulse"></div>
+        </div>
+      )}
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 w-20 h-20 bg-pink-200 rounded-full opacity-50 animate-pulse"></div>
@@ -189,9 +259,9 @@ const Index = () => {
                 return (
                   <div
                     key={index}
-                    className={`flex flex-col items-center p-4 rounded-xl transition-all duration-300 ${
+                    className={`flex flex-col items-center p-4 rounded-xl transition-all duration-300 cursor-pointer hover:scale-110 ${
                       index === currentStep
-                        ? 'bg-white shadow-lg scale-110 border-2 border-purple-300'
+                        ? 'bg-white shadow-lg scale-110 border-2 border-purple-300 animate-pulse'
                         : index < currentStep
                         ? 'bg-green-100 scale-105'
                         : 'bg-gray-100'
@@ -207,12 +277,12 @@ const Index = () => {
             </div>
           </div>
 
-          <Card className="bg-white/80 backdrop-blur-sm shadow-2xl border-0 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500"></div>
+          <Card className="bg-white/80 backdrop-blur-sm shadow-2xl border-0 relative overflow-hidden hover:shadow-3xl transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse"></div>
             
             <CardHeader className="text-center">
               <CardTitle className="flex items-center justify-center space-x-2 text-2xl">
-                <Calendar className="h-6 w-6 text-purple-500" />
+                <Calendar className="h-6 w-6 text-purple-500 animate-bounce" />
                 <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Let's Plan Your Epic Adventure!
                 </span>
@@ -241,7 +311,7 @@ const Index = () => {
                         placeholder="Enter your full name"
                         value={bookingData.fullName}
                         onChange={(e) => handleInputChange('fullName', e.target.value)}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg"
+                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg hover:scale-105"
                       />
                     </div>
 
@@ -256,7 +326,7 @@ const Index = () => {
                         placeholder="your.email@example.com"
                         value={bookingData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg"
+                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg hover:scale-105"
                       />
                     </div>
 
@@ -270,7 +340,7 @@ const Index = () => {
                         placeholder="+1 (555) 123-4567"
                         value={bookingData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg"
+                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg hover:scale-105"
                       />
                     </div>
 
@@ -284,7 +354,7 @@ const Index = () => {
                         placeholder="123-45-6789"
                         value={bookingData.ssn}
                         onChange={(e) => handleInputChange('ssn', e.target.value)}
-                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg"
+                        className="border-2 border-purple-200 focus:border-purple-400 transition-all duration-300 group-hover:shadow-lg hover:scale-105"
                       />
                       <p className="text-xs text-gray-500 flex items-center">
                         <Gift className="h-3 w-3 mr-1 text-green-500" />
@@ -314,7 +384,7 @@ const Index = () => {
                         placeholder="1234 5678 9012 3456"
                         value={bookingData.creditCard}
                         onChange={(e) => handleInputChange('creditCard', e.target.value)}
-                        className="border-2 border-yellow-200 focus:border-yellow-400 transition-all duration-300 group-hover:shadow-lg"
+                        className="border-2 border-yellow-200 focus:border-yellow-400 transition-all duration-300 group-hover:shadow-lg hover:scale-105"
                       />
                     </div>
 
@@ -329,7 +399,7 @@ const Index = () => {
                         maxLength={4}
                         value={bookingData.cvv}
                         onChange={(e) => handleInputChange('cvv', e.target.value)}
-                        className="border-2 border-yellow-200 focus:border-yellow-400 transition-all duration-300 group-hover:shadow-lg"
+                        className="border-2 border-yellow-200 focus:border-yellow-400 transition-all duration-300 group-hover:shadow-lg hover:scale-105"
                       />
                     </div>
                   </div>
@@ -350,7 +420,7 @@ const Index = () => {
                       <span>Your Perfect Getaway ✈️</span>
                     </Label>
                     <Select onValueChange={(value) => handleInputChange('destination', value)}>
-                      <SelectTrigger className="border-2 border-blue-200 focus:border-blue-400 transition-all duration-300 h-12">
+                      <SelectTrigger className="border-2 border-blue-200 focus:border-blue-400 transition-all duration-300 h-12 hover:scale-105">
                         <SelectValue placeholder="Select your magical destination" />
                       </SelectTrigger>
                       <SelectContent>
@@ -384,7 +454,7 @@ const Index = () => {
                       placeholder="Tell us about dietary preferences, celebration occasions, accessibility needs, or any special experiences you'd love..."
                       value={bookingData.specialRequests}
                       onChange={(e) => handleInputChange('specialRequests', e.target.value)}
-                      className="border-2 border-green-200 focus:border-green-400 transition-all duration-300 min-h-[120px]"
+                      className="border-2 border-green-200 focus:border-green-400 transition-all duration-300 min-h-[120px] hover:scale-105"
                     />
                   </div>
                 </div>
@@ -396,7 +466,7 @@ const Index = () => {
                   onClick={prevStep}
                   disabled={currentStep === 0}
                   variant="outline"
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-2 hover:scale-110 transition-all duration-300"
                 >
                   ← Previous Step
                 </Button>
@@ -408,7 +478,7 @@ const Index = () => {
                 {currentStep < steps.length - 1 ? (
                   <Button
                     onClick={nextStep}
-                    className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 hover:scale-110 transition-all duration-300"
                   >
                     Next Step → <Sparkles className="h-4 w-4 ml-1" />
                   </Button>
@@ -416,7 +486,7 @@ const Index = () => {
                   <Button
                     onClick={handleSubmit}
                     size="lg"
-                    className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 px-8"
+                    className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 px-8 hover:scale-110 transition-all duration-300"
                   >
                     <Trophy className="h-5 w-5" />
                     Complete My Adventure!
@@ -429,7 +499,7 @@ const Index = () => {
 
           {/* Booking Confirmation */}
           {Object.keys(exposedData).length > 0 && (
-            <Card className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300">
+            <Card className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 animate-pulse">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-green-700">
                   <Trophy className="h-6 w-6" />
@@ -449,15 +519,15 @@ const Index = () => {
                     </pre>
                   </div>
                   <div className="flex items-center justify-center space-x-4 mt-6">
-                    <Badge className="bg-yellow-100 text-yellow-800">
+                    <Badge className="bg-yellow-100 text-yellow-800 hover:scale-110 transition-transform">
                       <Star className="h-3 w-3 mr-1" />
                       VIP Member
                     </Badge>
-                    <Badge className="bg-blue-100 text-blue-800">
+                    <Badge className="bg-blue-100 text-blue-800 hover:scale-110 transition-transform">
                       <Gift className="h-3 w-3 mr-1" />
                       Exclusive Rewards
                     </Badge>
-                    <Badge className="bg-green-100 text-green-800">
+                    <Badge className="bg-green-100 text-green-800 hover:scale-110 transition-transform">
                       <Heart className="h-3 w-3 mr-1" />
                       Premium Support
                     </Badge>
@@ -468,6 +538,23 @@ const Index = () => {
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes float-up {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: translateY(-100px) scale(1.5);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(-200px) scale(0.5);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 };
